@@ -28,13 +28,13 @@ class LLMClient:
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
-        
+
     def __init__(self) -> None:
         # Nếu đã khởi tạo và nạp model rồi thì bỏ qua không nạp lại
         if self._initialized:
             return
         # CẤU HÌNH: ID mô hình trên Hugging Face
-        self.model_path = "Qwen/Qwen2.5-7B-Instruct" 
+        self.model_path = "Qwen/Qwen2.5-3B-Instruct" 
         
         # Load Tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
