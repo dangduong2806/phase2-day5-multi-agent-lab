@@ -13,6 +13,9 @@ from multi_agent_research_lab.core.state import ResearchState
 from multi_agent_research_lab.graph.workflow import MultiAgentWorkflow
 from multi_agent_research_lab.observability.logging import configure_logging
 
+import time
+from multi_agent_research_lab.services.llm_client import LLMClient
+
 app = typer.Typer(help="Multi-Agent Research Lab starter CLI")
 console = Console()
 
@@ -31,11 +34,52 @@ def baseline(
     _init()
     request = ResearchQuery(query=query)
     state = ResearchState(request=request)
-    state.final_answer = (
-        "Baseline skeleton response. TODO(student): replace this with a real single-agent "
-        "implementation and record latency/cost/quality metrics."
+    # state.final_answer = (
+    #     "Baseline skeleton response. TODO(student): replace this with a real single-agent "
+    #     "implementation and record latency/cost/quality metrics."
+    # )
+    # Bước 2: Khởi tạo LLMClient và thiết lập Prompt
+    llm_client = LLMClient()
+    
+    system_prompt = (
+        "You are a helpful research assistant. Answer the user's research query comprehensively, "
+        "providing clear explanation and details where possible."
     )
-    console.print(Panel.fit(state.final_answer, title="Single-Agent Baseline"))
+    user_prompt = request.query
+    console.print(f"[bold blue]Starting Single-Agent Baseline for query:[/bold blue] {query}\n")
+    
+    # Bước 3: Gọi LLM và đo thời gian
+    start_time = time.perf_counter()
+    try:
+        response = llm_client.complete(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt
+        )
+        end_time = time.perf_counter()
+        
+        # Cập nhật kết quả vào state
+        state.final_answer = response.content
+        latency = end_time - start_time
+        
+        # Bước 4: Hiển thị kết quả & thông số đo lường ra màn hình
+        console.print(Panel.fit(state.final_answer, title="Single-Agent Baseline Output", border_style="green"))
+        
+        metrics_info = (
+            f"[bold green]Metrics Summary:[/bold green]\n"
+            f"- Latency: {latency:.2f} seconds\n"
+            f"- Input Tokens: {response.input_tokens or 'N/A'}\n"
+            f"- Output Tokens: {response.output_tokens or 'N/A'}\n"
+            f"- Estimated Cost: ${response.cost_usd or 0.0:.6f}"
+        )
+        console.print(Panel(metrics_info, title="Performance Benchmark"))
+        
+    except StudentTodoError:
+        console.print(
+            "[bold yellow]Note:[/bold yellow] LLMClient.complete raises StudentTodoError. "
+            "Please implement LLMClient before running this baseline.",
+            style="yellow"
+        )
+    # console.print(Panel.fit(state.final_answer, title="Single-Agent Baseline"))
 
 
 @app.command("multi-agent")
