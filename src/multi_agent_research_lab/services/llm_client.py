@@ -27,15 +27,15 @@ class LLMClient:
         # Chọn GPU (Kaggle hỗ trợ GPU T4 x2 miễn phí, rất nên dùng)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         
-        # Load Model tự động tải về
+        # Load Model tự động tải về (Bỏ device_map="auto" để tránh chia nhỏ model)
         self.model = AutoModelForCausalLM.from_pretrained(
             self.model_path,
-            torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
-            device_map="auto" if self.device == "cuda" else None
+            torch_dtype=torch.float16 if self.device == "cuda" else torch.float32
         )
-        if self.device == "cpu":
-            self.model = self.model.to(self.device)
-            
+        
+        # Di chuyển TOÀN BỘ model lên cùng thiết bị với dữ liệu đầu vào
+        self.model = self.model.to(self.device)
+
     def complete(self, system_prompt: str, user_prompt: str) -> LLMResponse:
         """Run inference directly in Python using PyTorch."""
         
