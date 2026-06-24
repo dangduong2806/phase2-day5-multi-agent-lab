@@ -16,25 +16,43 @@ class LLMResponse:
 class LLMClient:
     """Loads a Hugging Face model from D drive and generates responses offline."""
 
+    """Loads a Hugging Face model and generates responses.
+    
+    Implemented as a Singleton to prevent loading the model multiple times 
+    in GPU memory.
+    """
+    _instance = None
+    def __new__(cls, *args, **kwargs):
+        # Mẫu thiết kế Singleton: Trả về thực thể duy nhất đã tạo
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+        
     def __init__(self) -> None:
-        # CẤU HÌNH: Hãy thay đổi đường dẫn dưới đây thành thư mục chứa model của bạn trên ổ D
-        # Thư mục này phải chứa các file như config.json, model.safetensors, v.v.
-        self.model_path =  "Qwen/Qwen2.5-7B-Instruct" 
+        # Nếu đã khởi tạo và nạp model rồi thì bỏ qua không nạp lại
+        if self._initialized:
+            return
+        # CẤU HÌNH: ID mô hình trên Hugging Face
+        self.model_path = "Qwen/Qwen2.5-7B-Instruct" 
         
         # Load Tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
         
-        # Chọn GPU (Kaggle hỗ trợ GPU T4 x2 miễn phí, rất nên dùng)
+        # Chọn thiết bị chạy
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         
-        # Load Model tự động tải về (Bỏ device_map="auto" để tránh chia nhỏ model)
+        # Load Model
         self.model = AutoModelForCausalLM.from_pretrained(
             self.model_path,
             torch_dtype=torch.float16 if self.device == "cuda" else torch.float32
         )
         
-        # Di chuyển TOÀN BỘ model lên cùng thiết bị với dữ liệu đầu vào
+        # Di chuyển model lên GPU/CPU
         self.model = self.model.to(self.device)
+        
+        # Đánh dấu đã khởi tạo thành công
+        self._initialized = True
 
     def complete(self, system_prompt: str, user_prompt: str) -> LLMResponse:
         """Run inference directly in Python using PyTorch."""
